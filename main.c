@@ -1,4 +1,3 @@
-#include <string.h>
 #include "network.h"
 
 int main(int argc, char *argv[]) {
@@ -8,20 +7,20 @@ int main(int argc, char *argv[]) {
             perror("Dictionary");
             exit(EXIT_FAILURE);
         }
-        SOCKET = SOCKET_DEFAULT;
+        LISTEN_PORT = SOCKET_DEFAULT;
     }
 
     //passed a dictionary or socket, figure out which
-    else if (argc == 2){
+    else if (argc == 2) {
         char *endptr;
 
-        //if no integers in argument, assume its a dictionary
-        if (!(SOCKET = (int) strtol(argv[1], &endptr, 10))) {
+        //if no integers in argument, assume its a dictionary file
+        if (!(LISTEN_PORT = (int) strtol(argv[1], &endptr, 10))) {
             if (!(DICTIONARY = fopen(argv[1], "r"))) {
                 perror("Unknown dictionary");
                 exit(EXIT_FAILURE);
             }
-            SOCKET = SOCKET_DEFAULT;
+            LISTEN_PORT = SOCKET_DEFAULT;
         }
     }
 
@@ -33,7 +32,7 @@ int main(int argc, char *argv[]) {
         }
         char *endptr;
 
-        if (!(SOCKET = (int) strtol(argv[2], &endptr, 10))) {
+        if (!(LISTEN_PORT = (int) strtol(argv[2], &endptr, 10))) {
             perror("Issue reading socket");
             exit(EXIT_FAILURE);
         }
@@ -44,28 +43,144 @@ int main(int argc, char *argv[]) {
      */
 
     //create log file
-    FILE *log = fopen("log.txt", "w+");
+    LOG = fopen("log.txt", "w+");
+
+    //create log queue
+    int logQ[1];
+
+    //create thread pool
+    pthread_t workers[WORKER_BUF];
+
+    //fill pool
+    pthread_create(&workers[0], NULL, worker(), NULL);
+
+    //create client queue
+    int clients[CLIENT_BUF];
+
+    //create a listening socket on the specified port
+    int listen_socket;
+    if ((listen_socket = open_listenfd(LISTEN_PORT)) < 0) {
+        perror("Listening socket");
+        return 1;
+    }
+
+    //create socket variable for client connections
+    int connected_socket;
+
+    //start accepting clients
+    while (1) {
+        connected_socket = accept(listen_socket, NULL, NULL);
+
+        //get clientsQ lock
+
+        //add client socket to Q
+        clients[0] = connected_socket;
+
+        //unlock Q
+
+
+        //signal workers
+
+        break;
+    }
+    return 0;
+}
+
+_Bool lookup(char *word) {
+    //clear stdin
+    fflush(stdin);
+
+    _Bool match = 0;
+    char buf[DICT_BUF];
+
+    while((fgets(buf, DICT_BUF, DICTIONARY) != NULL)) {
+        //printf("%s", buf);
+
+        //get rid of '\n' first
+        size_t len = strlen(buf);
+        if(buf[len - 1] == '\n' && len > 1) {
+            buf[len - 1] = '\0';
+        }
+
+        //if the word isn't a match, get next word
+        if(strcmp(buf, word) != 0) {
+            continue;
+        }
+        else {
+            //printf("\"%s\" matched successfully!\n", word);
+            match = 1;
+            break;
+        }
+    }
+    return match;
+}
+
+/*
+void *worker() {
+    //lock mutex controlling client buffer
+    pthread_mutex_lock(&client_buffer_mutex);
+
+    //if buffer is empty
+    while (client_buffer_size == 0) {
+        //wait until client arrives
+        pthread_cond_wait(&client_buffer_not_empty, &client_buffer_mutex);
+    }
+
+    //get socket from client buffer
+    int socket = client_buffer[client_buffer_in];
+    client_buffer_in = (client_buffer_in++) % CLIENT_BUFFER_SIZE;
+    --client_buffer_size;
+
+    //unlock mutex
+    pthread_mutex_unlock(&client_buffer_mutex);
+
+    //send signal that buffer is not full
+    pthread_cond_signal(&client_buffer_not_full);
+
+    //keep receiving words until the client disconnects
+    //while client doesnt connect?
+    while(1) {
+        //bool to check if spelled correctly
+        int iscorrect = 0;
+
+        //allocate space to receive word
+        char *word = calloc(DICT_BUF, 1);
+
+        //receive word
+        word = recv(socket, word, MAX_WORD_SIZE, 0);
+
+        //search for word
+        if (lookup(word) == 0) {
+            printf("MISPELLED");
+        }
+
+        else {
+            iscorrect = 1;
+            printf("OK");
+        }
+
+        //print result to client
+
+
+        //push the result to the log queue
+
+    }
+}
+ */
+
+void *logger(){
+    //get the log queue
+
+    //print results to log file
+    //fprintf(LOG, "%s %s\n", word, iscorrect);
+};
 
 
 
 
+//socket test
+/*
 
-
-    //load dictionary, queues
-    //set up sync mechs for queues
-        //main thread should wait for signal from worker if Q full
-        //workers should wait for main if Q empty
-        //semaphores
-    //make worker threads
-    //create socket on port
-    //wait for connections
-    //create client socket descriptor, add to queue
-    //worker takes descriptor and waits for word
-    //worker checks dictionary
-    //worker writes to log
-    //worker takes another word or terminates
-
-    /* socket test */
     int socketfd;
     socketfd = socket(AF_INET , SOCK_STREAM , 0);
 
@@ -73,40 +188,13 @@ int main(int argc, char *argv[]) {
         perror("Could not create socket");
     }
 
+    int listeningSocket = open_listenfd(somePort);
+    int connectionSocket;
+
+    connectionSocket = accept(listeningSocket, NULL, NULL);
+    //connectionSocket now holds information about a connected client.
 
 
-
-    /*	//Create an array of threads.
-	pthread_t threadPool[WORKER_COUNT];
-	int threadIDs[WORKER_COUNT];
-	int i;
-	printf("Launching threads.\n");
-	for(i = 0; i < WORKER_COUNT; i++){
-		threadIDs[i] = i;
-		//Start running the threads.
-		pthread_create(&threadPool[i], NULL, &threadFunction, &threadIDs[i]);
-	}
-	printf("All threads launched, waiting for them to quit.\n");
-	for(i = 0; i < WORKER_COUNT; i++){
-		//Wait for all threads to finish executing.
-		pthread_join(threadPool[i], NULL);
-	}
-	printf("All threads completed.\n");
-	return 0;
-}
-void* threadFunction(void* id){
-	printf("Thread %d: Hello\n", *((int*) id));
-	printf("Thread %d: Quitting\n", *((int*) id));
-
-
-
-
-     int listeningSocket = open_listenfd(somePort);
-int connectionSocket;
-
-connectionSocket = accept(listeningSocket, NULL, NULL);
-//connectionSocket now holds information about a connected client.
-
-*/
+    close(socketfd);
     return 0;
-}
+}*/
