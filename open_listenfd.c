@@ -1,13 +1,5 @@
 #include "simpleServer.h"
 //Copied from the Computer Systems textbook.
-//This function creates a socket descriptor, and binds
-//the socket descriptor the specified port.
-//bind() associates the socket descriptor created 
-//with socket() to the port we want the server to listen on.
-//Once the descriptor is bound, the listen() call
-//will prepare the socket so that we can call accept() on it
-//and get a connection to a user.
-
 
 int open_listenfd(int port) {
 	int listenfd, optval = 1;
@@ -43,7 +35,6 @@ int open_listenfd(int port) {
 	 if (listen(listenfd, 20) < 0){
 	 	return -1;
 	 }
-
 	 return listenfd;
 }
  
