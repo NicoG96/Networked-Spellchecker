@@ -13,8 +13,7 @@
 #define SOCKET_DEFAULT 8765
 #define DICT_DEFAULT "dictionary.txt"
 #define DICT_BUF 128
-#define WORKER_BUF 1
-#define CLIENT_BUF 1
+#define BUFFER_MAX 5
 
 
 /* GLOBAL VARS */
@@ -23,23 +22,25 @@ FILE *LOG;
 int LISTEN_PORT;
 
 
-/* STRUCTS */
-typedef struct client{
-    int sock_desc;
-    struct client *next;
-}client;
+/* STRUCT */
+typedef struct buf{
+    char **log_buf;
+    int *client_buf;
+    int client_count, log_count;
+    int client_index, log_index;
+    pthread_mutex_t client_mutex, log_mutex;
+    pthread_cond_t client_not_empty, client_not_full;
+    pthread_cond_t log_not_empty, log_not_full;
+}buf;
 
 
 /* FUNCTIONS */
-void enqueue(client *newclient, client **queue);
-client* pop(client **queue);
-_Bool isempty(client **queue);
-_Bool isfull(client **queue);
-size_t size(client **queue);
-void print(client **queue);
-client* newNode();
-void* threadFunction(void* id);
 _Bool lookup(char *word);
-void *worker();
-void *logger();
+void *worker_routine(void *args);
+void *logger_routine(void *args);
 int open_listenfd(int port);
+
+void insert_log(buf *sp, char *item);
+void insert_client(buf *sp, int item);
+int remove_log(buf *sp, char **out_buf);
+int remove_client(buf *sp);
