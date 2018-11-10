@@ -81,84 +81,33 @@ int main(int argc, char *argv[]) {
     //create socket variable for client connections
     int connected_socket;
 
-    /////////////////////////
-
-
-    /*
-    connected_socket = accept(listen_socket, NULL, NULL);
-    char* clientMessage = "Hello!\n";
-    send(connected_socket, clientMessage, strlen(clientMessage), 0);
-    int bytesReturned;
-    char recvBuffer[DICT_BUF];
-    recvBuffer[0] = '\0';
-    char* msgPrompt = ">>>";
-    char* msgError = "I didn't get your message. ):\n";
-    char* msgClose = "Goodbye!\n";
-    char *msgResponse = "Got ur word chief.\n";
-
-
-
-
     //start accepting clients
     while (1) {
-        //allocate space to receive word
-        char *word = calloc(DICT_BUF, 1);
-        memset(recvBuffer, '\0', DICT_BUF * sizeof(char));
+        connected_socket = accept(listen_socket, NULL, NULL);
 
-        send(connected_socket, msgPrompt, strlen(msgPrompt), 0);
-        bytesReturned = (int) recv(connected_socket, recvBuffer, DICT_BUF, 0);
-
-
-        if(bytesReturned == -1){
-            send(connected_socket, msgError, strlen(msgError), 0);
-        }
-
-        else if(recvBuffer[0] == 27){
-            send(connected_socket, msgClose, strlen(msgClose), 0);
-            break;
-        }
-
-        else {
-            if (lookup(recvBuffer) > 0) {
-                send(connected_socket, "OK", strlen("OK"), 0);
-            }
-
-            else {
-                send(connected_socket, "MISSPELLED", strlen("MISSPELLED"), 0);
-            }
-        }
-
-
-
+        //exit if client can't be connected
+        if (connected_socket < 1) break;
 
         //get clientsQ lock
-        pthread_mutex_lock(&clientQ_mutex);
+        pthread_mutex_lock(&serv->client_mutex);
 
-        //check if clientsQ is full
-        while(count == CLIENT_BUF) {
-            pthread_cond_wait(&clientQ_not_full, &clientQ_mutex);
+        //check if clientsQ is full. Using circular array , so full when read == write && maxed out elements
+        while (serv->c_read_ptr == serv->c_write_ptr && serv->client_count == BUFFER_MAX) {
+            pthread_cond_wait(&serv->client_not_full, &serv->client_mutex);
         }
 
         //add client socket to Q
-        clients[prod_ptr] = connected_socket;
-
-        prod_ptr = (prod_ptr++) % CLIENT_BUF;
-        ++count;
+        insert_client(serv, connected_socket);
 
         //signal workers
-        pthread_cond_signal(&clientQ_not_empty);
+        pthread_cond_signal(&serv->client_not_empty);
 
         //unlock Q
-        pthread_mutex_unlock(&clientQ_mutex);
-
-        break;
-
+        pthread_mutex_unlock(&serv->client_mutex);
     }
-     */
-
 
     close(listen_socket);
-    //close(connected_socket);
+    close(connected_socket);
     return 0;
 }
 
@@ -166,8 +115,10 @@ void server_init(server *serv) {
     serv->client_count = 0;
     serv->log_count = 0;
 
-    serv->client_index = 0;
-    serv->log_index = 0;
+    serv->c_read_ptr = -1;
+    serv->c_write_ptr = -1;
+    serv->l_read_ptr = -1;
+    serv->l_write_ptr = -1;
 
     pthread_mutex_init(&serv->client_mutex, NULL);
     pthread_mutex_init(&serv->log_mutex, NULL);
@@ -177,6 +128,15 @@ void server_init(server *serv) {
 
     pthread_cond_init(&serv->client_not_full, NULL);
     pthread_cond_init(&serv->log_not_full, NULL);
+}
 
-    //init client and log buffers
+void insert_client(server *serv, int socket) {
+    //insert into client buffer
+    clients[serv->c_write_ptr] = socket;
+
+    //increment the write pointer
+    serv->c_write_ptr = (++serv->c_write_ptr) % BUFFER_MAX;
+
+    //increment the total count
+    ++serv->client_count;
 }
