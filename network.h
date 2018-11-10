@@ -29,6 +29,8 @@ typedef struct server{
     int client_count, log_count;
     int l_read_ptr, l_write_ptr;
     int c_read_ptr, c_write_ptr;
+    int *client_buf;
+    char **log_buf;
     pthread_mutex_t client_mutex, log_mutex;
     pthread_cond_t client_not_empty, client_not_full;
     pthread_cond_t log_not_empty, log_not_full;
