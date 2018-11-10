@@ -20,14 +20,15 @@
 FILE *DICTIONARY;
 FILE *LOG;
 int LISTEN_PORT;
+int clients[BUFFER_MAX];
+char *logs[BUFFER_MAX];
 
 
 /* STRUCT */
 typedef struct server{
-    char **log_buf;
-    int *client_buf;
     int client_count, log_count;
-    int client_index, log_index;
+    int l_read_ptr, l_write_ptr;
+    int c_read_ptr, c_write_ptr;
     pthread_mutex_t client_mutex, log_mutex;
     pthread_cond_t client_not_empty, client_not_full;
     pthread_cond_t log_not_empty, log_not_full;
