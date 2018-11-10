@@ -2,16 +2,17 @@
 
 _Bool lookup(char *word) {
     _Bool match = 0;
+
+    //var to hold fetched dictionary word
     char buf[DICT_BUF];
 
-    while((fgets(buf, DICT_BUF, DICTIONARY) != NULL)) {
-        //printf("%s", buf);
+    //get rid of '\r' first (words in dictionary already have '\n', saving time)
+    size_t len = strlen(word);
+    word[len - 2] = '\n';
+    word[len - 1] = '\0';
 
-        //get rid of '\n' first
-        size_t len = strlen(buf);
-        if(buf[len - 1] == '\n' && len > 1) {
-            buf[len - 1] = '\0';
-        }
+    while(fgets(buf, DICT_BUF, DICTIONARY) != NULL) {
+        //printf("%s", buf);
 
         //if the word isn't a match, get next word
         if(strcmp(buf, word) != 0) {
