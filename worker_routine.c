@@ -7,7 +7,7 @@ void *worker_routine(void* args) {
     pthread_mutex_lock(&serv->client_mutex);
 
     //if client Q is empty
-    while (serv->client_count == 0) {
+    while (serv->c_read_ptr == serv->c_write_ptr && serv->client_count == 0) {
         pthread_cond_wait(&serv->client_not_empty, &serv->client_mutex);
     }
 
@@ -19,6 +19,7 @@ void *worker_routine(void* args) {
 
     //unlock mutex
     pthread_mutex_unlock(&serv->client_mutex);
+
 
     char *msgError = "Problem receiving message";
     int bytesReturned;
@@ -32,7 +33,7 @@ void *worker_routine(void* args) {
 
         //receive word
         bytesReturned = (int) recv(socket, word, DICT_BUF, 0);
-        //printf("%s", word);
+        //printf("%s\n", word);
 
         //if there was an error in the message reception
         if (bytesReturned < 0) {
@@ -42,6 +43,7 @@ void *worker_routine(void* args) {
 
         //or if the client pressed escape key
         if(word[0] == 27) {
+            send(socket, "Goodbye.\n", strlen("Goodbye.\n"), 0);
             break;
         }
 
@@ -56,7 +58,7 @@ void *worker_routine(void* args) {
         pthread_mutex_lock(&serv->log_mutex);
 
         //check if the buffer is full
-        while(serv->log_count == BUFFER_MAX) {
+        while(serv->l_write_ptr == serv->l_read_ptr && serv->log_count == BUFFER_MAX) {
             pthread_cond_wait(&serv->log_not_full, &serv->log_mutex);
         }
 
@@ -74,14 +76,16 @@ void *worker_routine(void* args) {
 }
 
 int remove_client(server *serv) {
-    int socket = *serv->client_buf;
-    serv->client_buf = 0;
+    int socket = clients[serv->c_read_ptr];
+
+    //clear the array index
+    clients[serv->c_read_ptr] = -1;
 
     //increment the index, and optionally loop back to 0 if we reach end of buffer
-    serv->client_index = ++(serv->client_index) % BUFFER_MAX;
+    serv->c_read_ptr = (++serv->c_read_ptr) % BUFFER_MAX;
 
     //decrement the amount of clients in the buffer
-    --(serv->client_count);
+    --serv->client_count;
 
     return socket;
 }
@@ -99,10 +103,10 @@ void insert_log(server *serv, char *word, int iscorrect) {
     strcat(string, res);
 
     //push string to the queue
-    strcpy(*serv->log_buf, string);
+    strcpy(logs[serv->l_write_ptr], string);
 
     //increment the index, and optionally loop back to 0 if we reach end of buffer
-    serv->log_index = ++(serv->log_index) % BUFFER_MAX;
+    serv->l_write_ptr = (++serv->l_write_ptr) % BUFFER_MAX;
 
     //increment the amount of logs in the buffer
     ++(serv->log_count);
