@@ -23,7 +23,7 @@ int LISTEN_PORT;
 
 
 /* STRUCT */
-typedef struct buf{
+typedef struct server{
     char **log_buf;
     int *client_buf;
     int client_count, log_count;
@@ -31,7 +31,7 @@ typedef struct buf{
     pthread_mutex_t client_mutex, log_mutex;
     pthread_cond_t client_not_empty, client_not_full;
     pthread_cond_t log_not_empty, log_not_full;
-}buf;
+}server;
 
 
 /* FUNCTIONS */
@@ -39,8 +39,8 @@ _Bool lookup(char *word);
 void *worker_routine(void *args);
 void *logger_routine(void *args);
 int open_listenfd(int port);
-
-void insert_log(buf *sp, char *item);
-void insert_client(buf *sp, int item);
-int remove_log(buf *sp, char **out_buf);
-int remove_client(buf *sp);
+void server_init(server *serv);
+void insert_client(server *serv, int socket);
+int remove_client(server *serv);
+void insert_log(server *serv, char *word, int iscorrect);
+int remove_log(server *serv, char **logitem);
