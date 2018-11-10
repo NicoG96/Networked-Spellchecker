@@ -14,8 +14,9 @@ int main(int argc, char *argv[]) {
     else if (argc == 2) {
         char *endptr;
 
-        //if no integers in argument, assume its a dictionary file
+        //if the first argument isn't an int
         if (!(LISTEN_PORT = (int) strtol(argv[1], &endptr, 10))) {
+            //assume it's a dictionary
             if (!(DICTIONARY = fopen(argv[1], "r"))) {
                 perror("Unknown dictionary");
                 exit(EXIT_FAILURE);
@@ -36,165 +37,146 @@ int main(int argc, char *argv[]) {
             perror("Issue reading socket");
             exit(EXIT_FAILURE);
         }
+        //if the port isn't a legal port
+        if (LISTEN_PORT < 1024 || LISTEN_PORT > 65535) {
+            perror("Port out of range (Must be between 1025 & 65534)");
+            exit(EXIT_FAILURE);
+        }
     }
     /*
     printf("Dictionary:\t%s\n", argv[1]);
     printf("Socket:\t%d\n", SOCKET);
      */
 
-    //create log file
-    LOG = fopen("log.txt", "w+");
-
-    //create log queue
-    int logQ[1];
-
-    //create thread pool
-    pthread_t workers[WORKER_BUF];
-
-    //fill pool
-    pthread_create(&workers[0], NULL, worker(), NULL);
-
-    //create client queue
-    int clients[CLIENT_BUF];
-
     //create a listening socket on the specified port
     int listen_socket;
     if ((listen_socket = open_listenfd(LISTEN_PORT)) < 0) {
-        perror("Listening socket");
-        return 1;
+        perror("Couldn't open listening socket");
+        exit(EXIT_FAILURE);
     }
+
+    //create struct that holds all condition vars and mutex locks
+    server *serv = malloc(sizeof(*serv));
+
+    //initialize the server
+    server_init(serv);
+
+    //create thread pool
+    pthread_t workers[BUFFER_MAX];
+
+    //add threads to the pool
+    /*
+    for (int i = 0; i < BUFFER_MAX; i++) {
+        pthread_create(&workers[i], NULL, worker_routine(serv), 0);
+    }
+    pthread_create(&workers[0], NULL, worker_routine(serv), 0);
+     */
+
+    //create thread for logger
+    /*
+    pthread_t logger;
+    pthread_create(&logger, NULL, logger_routine(serv), 0);
+     */
 
     //create socket variable for client connections
     int connected_socket;
 
+    /////////////////////////
+
+
+    /*
+    connected_socket = accept(listen_socket, NULL, NULL);
+    char* clientMessage = "Hello!\n";
+    send(connected_socket, clientMessage, strlen(clientMessage), 0);
+    int bytesReturned;
+    char recvBuffer[DICT_BUF];
+    recvBuffer[0] = '\0';
+    char* msgPrompt = ">>>";
+    char* msgError = "I didn't get your message. ):\n";
+    char* msgClose = "Goodbye!\n";
+    char *msgResponse = "Got ur word chief.\n";
+
+
+
+
     //start accepting clients
     while (1) {
-        connected_socket = accept(listen_socket, NULL, NULL);
-
-        //get clientsQ lock
-
-        //add client socket to Q
-        clients[0] = connected_socket;
-
-        //unlock Q
-
-
-        //signal workers
-
-        break;
-    }
-    return 0;
-}
-
-_Bool lookup(char *word) {
-    //clear stdin
-    fflush(stdin);
-
-    _Bool match = 0;
-    char buf[DICT_BUF];
-
-    while((fgets(buf, DICT_BUF, DICTIONARY) != NULL)) {
-        //printf("%s", buf);
-
-        //get rid of '\n' first
-        size_t len = strlen(buf);
-        if(buf[len - 1] == '\n' && len > 1) {
-            buf[len - 1] = '\0';
-        }
-
-        //if the word isn't a match, get next word
-        if(strcmp(buf, word) != 0) {
-            continue;
-        }
-        else {
-            //printf("\"%s\" matched successfully!\n", word);
-            match = 1;
-            break;
-        }
-    }
-    return match;
-}
-
-/*
-void *worker() {
-    //lock mutex controlling client buffer
-    pthread_mutex_lock(&client_buffer_mutex);
-
-    //if buffer is empty
-    while (client_buffer_size == 0) {
-        //wait until client arrives
-        pthread_cond_wait(&client_buffer_not_empty, &client_buffer_mutex);
-    }
-
-    //get socket from client buffer
-    int socket = client_buffer[client_buffer_in];
-    client_buffer_in = (client_buffer_in++) % CLIENT_BUFFER_SIZE;
-    --client_buffer_size;
-
-    //unlock mutex
-    pthread_mutex_unlock(&client_buffer_mutex);
-
-    //send signal that buffer is not full
-    pthread_cond_signal(&client_buffer_not_full);
-
-    //keep receiving words until the client disconnects
-    //while client doesnt connect?
-    while(1) {
-        //bool to check if spelled correctly
-        int iscorrect = 0;
-
         //allocate space to receive word
         char *word = calloc(DICT_BUF, 1);
+        memset(recvBuffer, '\0', DICT_BUF * sizeof(char));
 
-        //receive word
-        word = recv(socket, word, MAX_WORD_SIZE, 0);
+        send(connected_socket, msgPrompt, strlen(msgPrompt), 0);
+        bytesReturned = (int) recv(connected_socket, recvBuffer, DICT_BUF, 0);
 
-        //search for word
-        if (lookup(word) == 0) {
-            printf("MISPELLED");
+
+        if(bytesReturned == -1){
+            send(connected_socket, msgError, strlen(msgError), 0);
+        }
+
+        else if(recvBuffer[0] == 27){
+            send(connected_socket, msgClose, strlen(msgClose), 0);
+            break;
         }
 
         else {
-            iscorrect = 1;
-            printf("OK");
+            if (lookup(recvBuffer) > 0) {
+                send(connected_socket, "OK", strlen("OK"), 0);
+            }
+
+            else {
+                send(connected_socket, "MISSPELLED", strlen("MISSPELLED"), 0);
+            }
         }
 
-        //print result to client
 
 
-        //push the result to the log queue
+
+        //get clientsQ lock
+        pthread_mutex_lock(&clientQ_mutex);
+
+        //check if clientsQ is full
+        while(count == CLIENT_BUF) {
+            pthread_cond_wait(&clientQ_not_full, &clientQ_mutex);
+        }
+
+        //add client socket to Q
+        clients[prod_ptr] = connected_socket;
+
+        prod_ptr = (prod_ptr++) % CLIENT_BUF;
+        ++count;
+
+        //signal workers
+        pthread_cond_signal(&clientQ_not_empty);
+
+        //unlock Q
+        pthread_mutex_unlock(&clientQ_mutex);
+
+        break;
 
     }
-}
- */
-
-void *logger(){
-    //get the log queue
-
-    //print results to log file
-    //fprintf(LOG, "%s %s\n", word, iscorrect);
-};
+     */
 
 
-
-
-//socket test
-/*
-
-    int socketfd;
-    socketfd = socket(AF_INET , SOCK_STREAM , 0);
-
-    if (socketfd == -1) {
-        perror("Could not create socket");
-    }
-
-    int listeningSocket = open_listenfd(somePort);
-    int connectionSocket;
-
-    connectionSocket = accept(listeningSocket, NULL, NULL);
-    //connectionSocket now holds information about a connected client.
-
-
-    close(socketfd);
+    close(listen_socket);
+    //close(connected_socket);
     return 0;
-}*/
+}
+
+void server_init(server *serv) {
+    serv->client_count = 0;
+    serv->log_count = 0;
+
+    serv->client_index = 0;
+    serv->log_index = 0;
+
+    pthread_mutex_init(&serv->client_mutex, NULL);
+    pthread_mutex_init(&serv->log_mutex, NULL);
+
+    pthread_cond_init(&serv->client_not_empty, NULL);
+    pthread_cond_init(&serv->log_not_empty, NULL);
+
+    pthread_cond_init(&serv->client_not_full, NULL);
+    pthread_cond_init(&serv->log_not_full, NULL);
+
+    //init client and log buffers
+}
