@@ -20,7 +20,6 @@ void *worker_routine(void* args) {
     //unlock mutex
     pthread_mutex_unlock(&serv->client_mutex);
 
-
     char *msgError = "Problem receiving message";
     int bytesReturned;
     char *res;
@@ -49,7 +48,7 @@ void *worker_routine(void* args) {
 
         //search for word, set the result equal to whether it was found or not
         int iscorrect = lookup(word);
-        iscorrect ? res = "OK\n" : "MISSPELLED\n";
+        iscorrect ? (res = "OK\n") : (res = "MISSPELLED\n");
 
         //print results to client
         send(socket, res, strlen(res), 0);
@@ -79,7 +78,7 @@ int remove_client(server *serv) {
     int socket = clients[serv->c_read_ptr];
 
     //clear the array index
-    clients[serv->c_read_ptr] = -1;
+    clients[serv->c_read_ptr] = 0;
 
     //increment the index, and optionally loop back to 0 if we reach end of buffer
     serv->c_read_ptr = (++serv->c_read_ptr) % BUFFER_MAX;
@@ -91,10 +90,21 @@ int remove_client(server *serv) {
 }
 
 void insert_log(server *serv, char *word, int iscorrect) {
+    //var to hold complete log text
     char string[DICT_BUF];
+
+    //clear buffer
+    memset(string, '\0', sizeof(char) * DICT_BUF);
+
+    //remove '\n'
+    size_t len = strlen(word);
+    word[len - 1] = '\0';
+
+    //var to hold OK/MISSPELLED
     char *res;
 
-    iscorrect ? res = "OK" : "MISSPELLED";
+    //set that var accordingly with quick test of argument passed
+    iscorrect ? (res = "OK") : (res = "MISSPELLED");
 
     //"[word]" is [OK/MISSPELLED]
     strcpy(string, "\"");
