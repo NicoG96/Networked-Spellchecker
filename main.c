@@ -48,16 +48,16 @@ int main(int argc, char *argv[]) {
     printf("Socket:\t%d\n", SOCKET);
      */
 
-
-    ////////////
-
-
     //create a listening socket on the specified port
     int listen_socket;
     if ((listen_socket = open_listenfd(LISTEN_PORT)) < 0) {
         perror("Couldn't open listening socket");
         exit(EXIT_FAILURE);
     }
+
+
+    ////////////
+
 
     //create struct that holds all condition vars and mutex locks
     server *serv = malloc(sizeof(*serv));
@@ -70,7 +70,6 @@ int main(int argc, char *argv[]) {
 
     //add threads to the pool
     for (int i = 0; i < BUFFER_MAX; i++) {
-
         pthread_create(&workers[i], NULL, worker_routine, (void *)serv);
     }
 
