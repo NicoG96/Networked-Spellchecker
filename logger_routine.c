@@ -18,6 +18,9 @@ void *logger_routine(void *args){
         //write results to log
         fprintf(LOG, "%s\n", result);
 
+        //force write of IO buffer
+        fflush(LOG);
+
         //signal that Q isn't full
         pthread_cond_signal(&serv->log_not_full);
 
