@@ -3,6 +3,16 @@
 void *logger_routine(void *args){
     server *serv = args;
 
+    /* TEST */
+    /*
+    printf("CLIENT COUNT: \t%d\n", serv->client_count);
+    printf("LOG COUNT: \t%d\n", serv->log_count);
+    printf("CLIENT READ PTR: \t%d\n", serv->c_read_ptr);
+    printf("CLIENT WRITE PTR: \t%d\n", serv->c_write_ptr);
+    printf("LOG READ PTR: \t%d\n", serv->l_read_ptr);
+    printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
+     */
+
     while(1) {
         //lock the log queue
         pthread_mutex_lock(&serv->log_mutex);
@@ -12,8 +22,24 @@ void *logger_routine(void *args){
             pthread_cond_wait(&serv->log_not_empty, &serv->log_mutex);
         }
 
+        /* TEST */
+        /*
+        for(int i = 0; i < BUFFER_MAX; i++) {
+            printf("logs[%d]:\t%s\n", i, logs[i]);
+        }
+        */
+
         //get the log results
         char *result = remove_log(serv);
+
+        /* TEST */
+        /*
+        for(int i = 0; i < BUFFER_MAX; i++) {
+            printf("logs[%d]:\t%s\n", i, logs[i]);
+        }
+        printf("LOG READ PTR: \t%d\n", serv->l_read_ptr);
+        printf("LOG COUNT: \t%d\n", serv->log_count);
+        */
 
         //write results to log
         fprintf(LOG, "%s\n", result);
