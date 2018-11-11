@@ -24,5 +24,6 @@ _Bool lookup(char *word) {
             return ++match;
         }
     }
+    rewind(DICTIONARY);
     return match;
 }
