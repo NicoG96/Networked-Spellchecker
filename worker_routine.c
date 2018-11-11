@@ -24,9 +24,11 @@ void *worker_routine(void* args) {
     int bytesReturned;
     char *res;
     char *word;
+    char *prompt = ">";
 
     //keep receiving words until the client disconnects
     while(1) {
+        send(socket, prompt, strlen(prompt), 0);
         //zero-initialize var to receive word
         word = calloc(DICT_BUF, 1);
 
