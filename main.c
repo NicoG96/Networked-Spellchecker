@@ -48,6 +48,10 @@ int main(int argc, char *argv[]) {
     printf("Socket:\t%d\n", SOCKET);
      */
 
+
+    ////////////
+
+
     //create a listening socket on the specified port
     int listen_socket;
     if ((listen_socket = open_listenfd(LISTEN_PORT)) < 0) {
@@ -65,28 +69,35 @@ int main(int argc, char *argv[]) {
     pthread_t workers[BUFFER_MAX];
 
     //add threads to the pool
-    /*
     for (int i = 0; i < BUFFER_MAX; i++) {
-        pthread_create(&workers[i], NULL, worker_routine(serv), 0);
+
+        pthread_create(&workers[i], NULL, worker_routine, (void *)serv);
     }
-    pthread_create(&workers[0], NULL, worker_routine(serv), 0);
-     */
+
+    //open log file
+    if ((LOG = fopen("log.txt", "w+")) == NULL) {
+        perror("Log file creation");
+        exit(EXIT_FAILURE);
+    }
 
     //create thread for logger
-    /*
     pthread_t logger;
-    pthread_create(&logger, NULL, logger_routine(serv), 0);
-     */
+    pthread_create(&logger, NULL, logger_routine, (void *) serv);
 
     //create socket variable for client connections
     int connected_socket;
 
+    char *greeting = "Hello! Type a word to spell-check it.\n";
+
     //start accepting clients
     while (1) {
-        connected_socket = accept(listen_socket, NULL, NULL);
+        if ((connected_socket = accept(listen_socket, NULL, NULL)) < 1) {
+            perror("Can't connect to client");
+            break;
+        }
 
-        //exit if client can't be connected
-        if (connected_socket < 1) break;
+        //send greeting message to client with instructions
+        send(connected_socket, greeting, strlen(greeting), 0);
 
         //get clientsQ lock
         pthread_mutex_lock(&serv->client_mutex);
@@ -106,8 +117,10 @@ int main(int argc, char *argv[]) {
         pthread_mutex_unlock(&serv->client_mutex);
     }
 
+    //clean up
     close(listen_socket);
     close(connected_socket);
+    fclose(LOG);
     return 0;
 }
 
@@ -115,19 +128,39 @@ void server_init(server *serv) {
     serv->client_count = 0;
     serv->log_count = 0;
 
-    serv->c_read_ptr = -1;
-    serv->c_write_ptr = -1;
-    serv->l_read_ptr = -1;
-    serv->l_write_ptr = -1;
+    serv->c_read_ptr = 0;
+    serv->c_write_ptr = 0;
+    serv->l_read_ptr = 0;
+    serv->l_write_ptr = 0;
 
-    pthread_mutex_init(&serv->client_mutex, NULL);
-    pthread_mutex_init(&serv->log_mutex, NULL);
+    if (pthread_mutex_init(&serv->client_mutex, NULL) != 0) {
+        perror("Client mutex init");
+    }
 
-    pthread_cond_init(&serv->client_not_empty, NULL);
-    pthread_cond_init(&serv->log_not_empty, NULL);
+    if (pthread_mutex_init(&serv->log_mutex, NULL) != 0) {
+        perror("Log mutex init");
+    }
 
-    pthread_cond_init(&serv->client_not_full, NULL);
-    pthread_cond_init(&serv->log_not_full, NULL);
+    if (pthread_cond_init(&serv->client_not_empty, NULL) != 0) {
+        perror("Client not empty init");
+    }
+
+    if (pthread_cond_init(&serv->log_not_empty, NULL) != 0) {
+        perror("Log not empty init");
+    }
+
+    if (pthread_cond_init(&serv->client_not_full, NULL) != 0) {
+        perror("Client not full init");
+    }
+
+    if (pthread_cond_init(&serv->log_not_full, NULL) != 0) {
+        perror("Log not full init");
+    }
+
+    for(int i = 0; i < BUFFER_MAX; i++) {
+        clients[i] = (int) calloc(1, sizeof(int));
+        logs[i] = (char *) calloc(1, sizeof(char *));
+    }
 }
 
 void insert_client(server *serv, int socket) {
