@@ -44,4 +44,4 @@ void server_init(server *serv);
 void insert_client(server *serv, int socket);
 int remove_client(server *serv);
 void insert_log(server *serv, char *word, int iscorrect);
-int remove_log(server *serv, char **logitem);
+char *remove_log(server *serv);
