@@ -55,7 +55,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-
     ////////////
 
 
@@ -64,6 +63,16 @@ int main(int argc, char *argv[]) {
 
     //initialize the server
     server_init(serv);
+
+    /* TEST */
+    /*
+    printf("CLIENT COUNT: \t%d\n", serv->client_count);
+    printf("LOG COUNT: \t%d\n", serv->log_count);
+    printf("CLIENT READ PTR: \t%d\n", serv->c_read_ptr);
+    printf("CLIENT WRITE PTR: \t%d\n", serv->c_write_ptr);
+    printf("LOG READ PTR: \t%d\n", serv->l_read_ptr);
+    printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
+     */
 
     //create thread pool
     pthread_t workers[BUFFER_MAX];
@@ -94,6 +103,7 @@ int main(int argc, char *argv[]) {
             perror("Can't connect to client");
             break;
         }
+        puts("Client connected.");
 
         //send greeting message to client with instructions
         send(connected_socket, greeting, strlen(greeting), 0);
@@ -108,6 +118,15 @@ int main(int argc, char *argv[]) {
 
         //add client socket to Q
         insert_client(serv, connected_socket);
+
+        /* TEST */
+        /*
+        for(int i = 0; i < BUFFER_MAX; i++) {
+            printf("%d\n", clients[i]);
+        }
+        printf("CLIENT WRITE PTR: \t%d\n", serv->c_write_ptr);
+        printf("CLIENT COUNT: \t%d\n", serv->client_count);
+        */
 
         //signal workers
         pthread_cond_signal(&serv->client_not_empty);
@@ -163,6 +182,8 @@ void server_init(server *serv) {
 }
 
 void insert_client(server *serv, int socket) {
+    //printf("%d\n", socket);
+
     //insert into client buffer
     clients[serv->c_write_ptr] = socket;
 
