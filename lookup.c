@@ -20,6 +20,7 @@ _Bool lookup(char *word) {
         }
         else {
             //printf("\"%s\" matched successfully!\n", word);
+            rewind(DICTIONARY);
             return ++match;
         }
     }
