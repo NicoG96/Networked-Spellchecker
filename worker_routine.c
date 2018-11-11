@@ -95,8 +95,8 @@ void insert_log(server *serv, char *word, int iscorrect) {
     //var to hold complete log text
     char string[DICT_BUF];
 
-    //clear buffer
-    memset(string, '\0', sizeof(char) * DICT_BUF);
+    //clear index
+    clients[serv->c_read_ptr] = (int) calloc(1, sizeof(int));
 
     //remove '\n'
     size_t len = strlen(word);
@@ -121,5 +121,5 @@ void insert_log(server *serv, char *word, int iscorrect) {
     serv->l_write_ptr = (++serv->l_write_ptr) % BUFFER_MAX;
 
     //increment the amount of logs in the buffer
-    ++(serv->log_count);
+    ++serv->log_count;
 }
