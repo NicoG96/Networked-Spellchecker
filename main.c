@@ -115,6 +115,14 @@ int main(int argc, char *argv[]) {
         while (serv->c_read_ptr == serv->c_write_ptr && serv->client_count == BUFFER_MAX) {
             pthread_cond_wait(&serv->client_not_full, &serv->client_mutex);
         }
+        /* TEST */
+        /*
+        for(int i = 0; i < BUFFER_MAX; i++) {
+            printf("pre-client-addition[%d]:\t%d\n", i, clients[i]);
+        }
+        printf("CLIENT WRITE PTR: \t%d\n", serv->c_write_ptr);
+        printf("CLIENT COUNT: \t%d\n", serv->client_count);
+         */
 
         //add client socket to Q
         insert_client(serv, connected_socket);
@@ -122,7 +130,7 @@ int main(int argc, char *argv[]) {
         /* TEST */
         /*
         for(int i = 0; i < BUFFER_MAX; i++) {
-            printf("%d\n", clients[i]);
+            printf("post-client-addition[%d]:\t%d\n", i, clients[i]);
         }
         printf("CLIENT WRITE PTR: \t%d\n", serv->c_write_ptr);
         printf("CLIENT COUNT: \t%d\n", serv->client_count);

@@ -8,6 +8,16 @@ void *worker_routine(void* args) {
     char *word;
     char *prompt = ">";
 
+    /* TEST */
+    /*
+    printf("CLIENT COUNT: \t%d\n", serv->client_count);
+    printf("LOG COUNT: \t%d\n", serv->log_count);
+    printf("CLIENT READ PTR: \t%d\n", serv->c_read_ptr);
+    printf("CLIENT WRITE PTR: \t%d\n", serv->c_write_ptr);
+    printf("LOG READ PTR: \t%d\n", serv->l_read_ptr);
+    printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
+     */
+
     while(1) {
         //lock clientQ
         pthread_mutex_lock(&serv->client_mutex);
@@ -17,8 +27,26 @@ void *worker_routine(void* args) {
             pthread_cond_wait(&serv->client_not_empty, &serv->client_mutex);
         }
 
+        /* TEST */
+        /*
+        for(int i = 0; i < BUFFER_MAX; i++) {
+            printf("pre-client-removal[%d]:\t%d\n", i, clients[i]);
+        }
+        printf("CLIENT READ PTR: \t%d\n", serv->c_read_ptr);
+        printf("CLIENT COUNT: \t%d\n", serv->client_count);
+        */
+
         //get socket from clientQ
         int socket = remove_client(serv);
+
+        /* TEST */
+        /*
+        for(int i = 0; i < BUFFER_MAX; i++) {
+            printf("post-client-removal[%d]:\t%d\n", i, clients[i]);
+        }
+        printf("CLIENT READ PTR: \t%d\n", serv->c_read_ptr);
+        printf("CLIENT COUNT: \t%d\n", serv->client_count);
+         */
 
         //send signal that Q is not full
         pthread_cond_signal(&serv->client_not_full);
@@ -34,7 +62,7 @@ void *worker_routine(void* args) {
 
             //receive word
             bytesReturned = (int) recv(socket, word, DICT_BUF, 0);
-            //printf("%s\n", word);
+            //printf("Input:\t%s\n", word);
 
             //if there was an error in the message reception
             if (bytesReturned < 0) {
@@ -67,8 +95,26 @@ void *worker_routine(void* args) {
                 pthread_cond_wait(&serv->log_not_full, &serv->log_mutex);
             }
 
+            /* TEST */
+            /*
+            for(int i = 0; i < BUFFER_MAX; i++) {
+                printf("pre-log-addition[%d]:\t%d\n", i, logs[i]);
+            }
+            printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
+            printf("LOG COUNT: \t%d\n", serv->log_count);
+            */
+
             //write to the logQ
             insert_log(serv, word, iscorrect);
+
+            /* TEST */
+            /*
+            for(int i = 0; i < BUFFER_MAX; i++) {
+                printf("post-log-addition[%d]:\t%d\n", i, logs[i]);
+            }
+            printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
+            printf("LOG COUNT: \t%d\n", serv->log_count);
+            */
 
             //signal that log Q isn't empty
             pthread_cond_signal(&serv->log_not_empty);
@@ -97,6 +143,7 @@ int remove_client(server *serv) {
 }
 
 void insert_log(server *serv, char *word, int iscorrect) {
+    //printf("word: \t%s\n", word);
     //var to hold complete log text
     char string[DICT_BUF];
 

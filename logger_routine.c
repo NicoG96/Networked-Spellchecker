@@ -25,8 +25,10 @@ void *logger_routine(void *args){
         /* TEST */
         /*
         for(int i = 0; i < BUFFER_MAX; i++) {
-            printf("logs[%d]:\t%s\n", i, logs[i]);
+            printf("pre-log-removal[%d]:\t%d\n", i, logs[i]);
         }
+        printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
+        printf("LOG COUNT: \t%d\n", serv->log_count);
         */
 
         //get the log results
@@ -35,9 +37,9 @@ void *logger_routine(void *args){
         /* TEST */
         /*
         for(int i = 0; i < BUFFER_MAX; i++) {
-            printf("logs[%d]:\t%s\n", i, logs[i]);
+            printf("post-log-removal[%d]:\t%d\n", i, logs[i]);
         }
-        printf("LOG READ PTR: \t%d\n", serv->l_read_ptr);
+        printf("LOG WRITE PTR: \t%d\n", serv->l_write_ptr);
         printf("LOG COUNT: \t%d\n", serv->log_count);
         */
 
