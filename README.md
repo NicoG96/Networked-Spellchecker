@@ -1,5 +1,5 @@
 # Networked Spell-Checker
-A multi-threaded spell-checker implemented over a local network
+A multi-threaded spell-checking server implemented over a local network
 ___
 Program acts as a server for multiple clients, distributing worker threads to each for simultaneous execution. 
 
